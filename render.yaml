@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: acidauto
+    runtime: python
+    plan: free
+    buildCommand: pip install -r requirements.txt && playwright install --with-deps chromium
+    startCommand: python app.py
+    healthCheckPath: /health
+    envVars:
+      - key: ADMIN_TOKEN
+        sync: false
+      - key: DATA_DIR
+        value: /tmp/acidauto-data
+      - key: TELEGRAM_WEB_URL
+        value: https://web.telegram.org/a/#@acidfirm_bot
+      - key: INITIAL_LEAD_MS
+        value: "58.5"

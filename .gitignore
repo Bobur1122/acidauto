@@ -1,0 +1,9 @@
+.env
+.env.*
+__pycache__/
+*.py[cod]
+telegram-profile/
+data/
+/tmp/
+acidfirm_lead.json
+*.log
