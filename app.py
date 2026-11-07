@@ -21,8 +21,8 @@ from fastapi.responses import HTMLResponse, JSONResponse, Response
 from pydantic import BaseModel
 from playwright.async_api import async_playwright
 
-VERSION = "render-v1"
-TARGET_RUN_SCORE = 1000
+VERSION = "render-v2"
+TARGET_RUN_SCORE = 2500
 ADMIN_TOKEN = os.environ.get("ADMIN_TOKEN", "")
 DATA_DIR = Path(os.environ.get("DATA_DIR", "/tmp/acidauto-data"))
 PROFILE_DIR = DATA_DIR / "telegram-profile"
@@ -421,7 +421,7 @@ async def run_loop():
                 runtime.update({"score": score, "ideal": ideal_count, "drops": drops})
                 if score >= TARGET_RUN_SCORE:
                     runtime["running"] = False
-                    runtime["error"] = "1000 estimate reached; paused"
+                    runtime["error"] = f"{TARGET_RUN_SCORE} estimate reached; paused"
                     continue
 
             m = float(moving_bar["center"])
