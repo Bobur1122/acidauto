@@ -209,6 +209,7 @@ class Command(BaseModel):
     action: str
     x: Optional[float] = None
     y: Optional[float] = None
+    text: Optional[str] = None
 
 
 def require_token(token: Optional[str]):
@@ -294,10 +295,12 @@ async def screen(x_admin_token: Optional[str] = Header(default=None)):
 @app.post("/command")
 async def command(body: Command, x_admin_token: Optional[str] = Header(default=None)):
     require_token(x_admin_token)
-    if body.action not in {"start", "pause", "click", "refresh"}:
+    if body.action not in {"start", "pause", "click", "refresh", "type"}:
         raise HTTPException(status_code=400, detail="Unknown action")
     if body.action == "click" and (body.x is None or body.y is None):
         raise HTTPException(status_code=400, detail="Click needs x and y")
+    if body.action == "type" and (not body.text or len(body.text) > 256):
+        raise HTTPException(status_code=400, detail="Text must be 1 to 256 characters")
     await commands.put(body.model_dump())
     return {"ok": True}
 
@@ -335,6 +338,8 @@ async def run_loop():
                     await page.reload(wait_until="domcontentloaded", timeout=60000)
                 elif cmd["action"] == "click":
                     await page.mouse.click(float(cmd["x"]), float(cmd["y"]))
+                elif cmd["action"] == "type":
+                    await page.keyboard.insert_text(cmd["text"])
 
             shot = await page.screenshot(type="png", timeout=15000)
             latest_frame = shot
@@ -490,12 +495,15 @@ CONTROL_HTML = r'''<!doctype html><meta name="viewport" content="width=device-wi
 <style>body{font:16px system-ui;background:#111;color:#eee;margin:16px}input,button{padding:10px;margin:4px}img{max-width:min(100%,523px);height:auto;display:block;margin-top:12px;touch-action:none}#state{white-space:pre-wrap}</style>
 <h2>AcidFirm server</h2><input id="token" type="password" placeholder="Render ADMIN_TOKEN"><button onclick="connect()">Connect</button>
 <button onclick="cmd('refresh')">Refresh Telegram</button><button onclick="cmd('start')">Start bot</button><button onclick="cmd('pause')">Pause</button>
+<p>Telegram login: click the field in the screenshot, enter the code or password here, then send it. This input clears after sending.</p>
+<input id="remoteText" type="password" autocomplete="off" placeholder="Telegram code or password" maxlength="256"><button onclick="sendText()">Send text</button>
 <div id="state">Enter the admin token.</div><img id="screen" alt="Telegram Web screen; tap it to navigate/login">
 <script>
 let key=sessionStorage.getItem('acid_token')||''; document.querySelector('#token').value=key;
 function headers(){return {'X-Admin-Token':key,'Content-Type':'application/json'}}
 async function connect(){key=document.querySelector('#token').value;sessionStorage.setItem('acid_token',key);await refresh()}
 async function cmd(action){await fetch('/command',{method:'POST',headers:headers(),body:JSON.stringify({action})});}
+async function sendText(){let field=document.querySelector('#remoteText');let value=field.value;if(!value)return;let r=await fetch('/command',{method:'POST',headers:headers(),body:JSON.stringify({action:'type',text:value})});field.value='';if(!r.ok)document.querySelector('#state').textContent='Text was not sent; reconnect and try again.';}
 async function refresh(){try{let s=await fetch('/status',{headers:headers()});if(!s.ok)throw Error('Token invalid');document.querySelector('#state').textContent=JSON.stringify(await s.json(),null,2);let f=await fetch('/screen',{headers:headers()});if(f.ok)document.querySelector('#screen').src=URL.createObjectURL(await f.blob())}catch(e){document.querySelector('#state').textContent=e.message}}
 document.querySelector('#screen').addEventListener('pointerdown',async e=>{let r=e.target.getBoundingClientRect();let x=(e.clientX-r.left)*e.target.naturalWidth/r.width;let y=(e.clientY-r.top)*e.target.naturalHeight/r.height;await fetch('/command',{method:'POST',headers:headers(),body:JSON.stringify({action:'click',x,y})})});
 setInterval(()=>{if(key)refresh()},700); if(key)connect();
