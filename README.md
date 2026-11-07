@@ -1,6 +1,6 @@
 # AcidAuto Render
 
-The game logic and the protected browser control panel live in `app.py`. The small Render manifest and dependency list are needed to deploy it; Telegram login data and calibration are never committed.
+The game logic and the protected browser control panel live in `app.py`. Render builds the service from the Dockerfile, which uses the matching Playwright 1.64.1 image with Chromium and its system libraries already installed. Telegram login data and calibration are never committed.
 
 ## Telegram login
 
@@ -20,7 +20,7 @@ For reliable 24/7 operation, use a paid Render Web Service with a persistent dis
 
 ## Deploy
 
-Render reads `render.yaml`. For a free trial, use the included free plan and accept that session state can be lost. For persistent 24/7 use, change the service to a paid plan and attach the disk described above in the Render Dashboard. Set `ADMIN_TOKEN` as a Render environment variable; do not put it in GitHub.
+Render reads `render.yaml`. Set the service runtime to **Docker** (or sync the Blueprint after pushing this change); do not use the native Python build command. The Dockerfile installs the Python requirements but does not run `playwright install --with-deps`, which needs operating-system package installation privileges. For a free trial, use the included free plan and accept that session state can be lost. For persistent 24/7 use, change the service to a paid plan and attach the disk described above in the Render Dashboard. Set `ADMIN_TOKEN` as a Render environment variable; do not put it in GitHub.
 
 ## Limits
 
